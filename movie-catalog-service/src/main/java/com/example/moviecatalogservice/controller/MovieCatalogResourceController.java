@@ -4,6 +4,9 @@ import com.example.moviecatalogservice.Entity.CatalogItem;
 import com.example.moviecatalogservice.Entity.Movie;
 import com.example.moviecatalogservice.Entity.Rating;
 import com.example.moviecatalogservice.Entity.UserRating;
+import com.example.moviecatalogservice.service.MovieInfo;
+import com.example.moviecatalogservice.service.UserRatingInfo;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +26,12 @@ public class MovieCatalogResourceController {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    MovieInfo movieInfo;
+
+    @Autowired
+    UserRatingInfo userRatingInfo;
+
     @GetMapping("/get")
     public String getSomeData(){
         return "Helloworld";
@@ -31,15 +40,14 @@ public class MovieCatalogResourceController {
     @GetMapping("/{userId}")
     public List<CatalogItem> getCatalog(@PathVariable("userId") String userId){
 
-
-
-        UserRating ratings = restTemplate.getForObject("http://rating-data-service/ratingsdata/users/"+userId,UserRating.class);
+        UserRating ratings = userRatingInfo.getUserRating(userId);
        return  ratings.getRatings().stream().map((rating)->   {
-           Movie movie = restTemplate.getForObject("http://movie-info-service/movies/"+rating.getMovieId(), Movie.class);
-          return  new CatalogItem(movie.getName(),"Test",rating.getRating());
+           Movie movie = movieInfo.getMovie(rating.getRating());
+          return  new CatalogItem(movie.getTitle(),movie.getOverview(),rating.getRating());
        }
        ).collect(Collectors.toList());
 
     }
+
 }
 
